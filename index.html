@@ -46,8 +46,18 @@
     ></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Google Maps JS (remplace TON_API_KEY_ICI par ta clé) -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=TON_API_KEY_ICI"></script>
+<!-- Leaflet (carte OpenStreetMap, gratuit) -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
 
     <!-- Service Worker simple -->
     <script>
@@ -113,7 +123,10 @@
       //   Agents & mots de passe
       // ========================
       const AGENTS_LIST = [
+        { id: "TCHA", name: "Tony CHAUVET", team: "Les Assions" },
+        { id: "MPOU", name: "Martine POULIQUEN", team: "Les Assions" },
         { id: "BGIR", name: "Baptiste GIRARD", team: "Les Assions" },
+        { id: "RMOR", name: "Régis MOREL", team: "Les Assions" },
         { id: "ISAV", name: "Igor SAVITCH", team: "Les Assions" },
         // 👉 ajoute ici les vrais noms / équipes
       ];
@@ -122,6 +135,9 @@
       const AGENT_PASSWORDS = {
         BGIR: "1234",
         ISAV: "1234",
+        TCHA: "1234",
+        MPOU: "1234",
+        RMOR: "1234",
       };
 
       // ========================
@@ -343,37 +359,45 @@
           );
         }, []);
 
-        function showOnMap(lat, lng) {
-          if (!window.google || !window.google.maps) {
-            console.warn("Google Maps non chargé ou clé API manquante.");
-            return;
-          }
-          const position = { lat, lng };
-          if (!mapRef.current) {
-            mapRef.current = new google.maps.Map(mapContainerRef.current, {
-              center: position,
-              zoom: 18,
-              mapTypeId: "roadmap",
-            });
-            markerRef.current = new google.maps.Marker({
-              position,
-              map: mapRef.current,
-              title: "Position de distribution",
-            });
-          } else {
-            mapRef.current.setCenter(position);
-            mapRef.current.setZoom(18);
-            if (markerRef.current) {
-              markerRef.current.setPosition(position);
-            } else {
-              markerRef.current = new google.maps.Marker({
-                position,
-                map: mapRef.current,
-                title: "Position de distribution",
-              });
+            function showOnMap(lat, lng) {
+              // Vérifie que Leaflet est bien chargé
+              if (!window.L) {
+                console.warn("Leaflet non chargé (L indisponible).");
+                return;
+              }
+            
+              const position = [lat, lng]; // Leaflet attend [lat, lng]
+            
+              // Première création de la carte
+              if (!mapRef.current) {
+                // Création de la carte centrée sur la position
+                mapRef.current = L.map(mapContainerRef.current).setView(position, 18);
+            
+                // Fonds de carte OpenStreetMap gratuits
+                L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                  maxZoom: 19,
+                  attribution: "© OpenStreetMap contributors",
+                }).addTo(mapRef.current);
+            
+                // Ajout du marqueur
+                markerRef.current = L.marker(position).addTo(mapRef.current);
+            
+                // Fix pour les soucis de rendu si le conteneur change de taille
+                setTimeout(() => {
+                  mapRef.current && mapRef.current.invalidateSize();
+                }, 100);
+              } else {
+                // Si la carte existe déjà, on la recadre simplement
+                mapRef.current.setView(position, 18);
+            
+                if (markerRef.current) {
+                  markerRef.current.setLatLng(position);
+                } else {
+                  markerRef.current = L.marker(position).addTo(mapRef.current);
+                }
+              }
             }
-          }
-        }
+
 
         async function reverseGeocode(lat, lon) {
           const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(
@@ -729,6 +753,7 @@
     </script>
   </body>
 </html>
+
 
 
 
