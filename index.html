@@ -54,7 +54,7 @@
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("/sw.js")
+            .register("./sw.js") // ← au lieu de "/sw.js"
             .then((reg) => console.log("SW registered:", reg.scope))
             .catch(console.error);
         });
@@ -726,3 +726,4 @@
     </script>
   </body>
 </html>
+
