@@ -33,6 +33,21 @@
       button {
         font-size: 16px;
       }
+       /* ---- Thème vert campagne ---- */
+  .btn-primary {
+    background-color: #79AEA3;
+    color: white;
+    font-weight: 500;
+    border-radius: 0.75rem; /* = rounded-xl */
+    transition: all 0.2s ease-in-out;
+  }
+  .btn-primary:hover {
+    background-color: #699b91;
+  }
+  .btn-primary:disabled {
+    background-color: #a8c9c2;
+    cursor: not-allowed;
+  }
     </style>
 
     <!-- React + Babel -->
@@ -325,7 +340,7 @@
 
               <button
                 onClick={save}
-                className="w-full bg-black text-white rounded-xl py-2.5 font-medium hover:opacity-90"
+                className="w-full btn-primary py-2.5"
               >
                 C'est parti
               </button>
@@ -691,7 +706,7 @@
                     <button
                       type="submit"
                       disabled={saving}
-                      className="px-4 py-2 rounded-xl bg-black text-white text-sm font-medium hover:bg-gray-900 disabled:bg-gray-500"
+                      className="btn-primary px-4 py-2 text-sm"
                     >
                       {saving ? "Enregistrement..." : "Enregistrer la distribution"}
                     </button>
@@ -753,6 +768,7 @@
     </script>
   </body>
 </html>
+
 
 
 
