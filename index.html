@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Les Assions 2026</title>
+
+    <!-- PWA / thème -->
+    <meta name="theme-color" content="#111827" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Les Assions 2026" />
+
+    <!-- Manifest & icônes (à adapter si besoin) -->
+    <link rel="manifest" href="./public/manifest.json" />
+    <link rel="icon" href="./public/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./public/icons/icon-192.png" />
+
+    <!-- Tailwind -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    />
+    <style>
+      /* confort iOS: évite le zoom automatique */
+      input,
+      select,
+      textarea,
+      button {
+        font-size: 16px;
+      }
+    </style>
+
+    <!-- React + Babel -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"
+      crossorigin
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"
+      crossorigin
+    ></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Maps JS (remplace TON_API_KEY_ICI par ta clé) -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=TON_API_KEY_ICI"></script>
+
+    <!-- Service Worker simple -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((reg) => console.log("SW registered:", reg.scope))
+            .catch(console.error);
+        });
+      }
+    </script>
+  </head>
+
+  <body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      // ========================
+      //   OUTBOX (offline)
+      // ========================
+      const OUTBOX_KEY = "la_outbox_v1";
+
+      function outboxPush(row) {
+        try {
+          const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY) || "[]");
+          arr.push(row);
+          localStorage.setItem(OUTBOX_KEY, JSON.stringify(arr));
+        } catch {}
+      }
+
+      async function outboxFlush() {
+        try {
+          const arr = JSON.parse(localStorage.getItem(OUTBOX_KEY) || "[]");
+          if (!arr.length) return;
+          const remain = [];
+          for (const row of arr) {
+            try {
+              await sendToSupabase(row);
+            } catch {
+              remain.push(row);
+            }
+          }
+          localStorage.setItem(OUTBOX_KEY, JSON.stringify(remain));
+        } catch {}
+      }
+
+      // ========================
+      //   CONFIG
+      // ========================
+      const CONFIG = {
+        SUPABASE_URL: "https://cgevhnbayhtnuxycypca.supabase.co",
+        SUPABASE_ANON_KEY:
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnZXZobmJheWh0bnV4eWN5cGNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNTY0ODQsImV4cCI6MjA3NzgzMjQ4NH0.TLzl_7ybzsT6i29BXzA1mRjsgFIPIHWr0Vzu-FrVEdQ",
+        TABLE: "distributions_2026", // 🔁 à créer / adapter dans Supabase
+        AGENT_KEY: "la_agent_name_v1",
+        LOGO_URL: "./public/assets/naldeo.png", // ou logo de campagne
+        APP_NAME: "Les Assions 2026 — Distributions",
+        THEME_COLOR: "#111827",
+      };
+
+      // ========================
+      //   Agents & mots de passe
+      // ========================
+      const AGENTS_LIST = [
+        { id: "BGIR", name: "Baptiste GIRARD", team: "Les Assions" },
+        { id: "ISAV", name: "Igor SAVITCH", team: "Les Assions" },
+        // 👉 ajoute ici les vrais noms / équipes
+      ];
+
+      // 🔐 mots de passe associés aux agents (à adapter évidemment)
+      const AGENT_PASSWORDS = {
+        BGIR: "1234",
+        ISAV: "1234",
+      };
+
+      // ========================
+      //   Hooks
+      // ========================
+      function useLocalStorage(key, initialValue) {
+        const [value, setValue] = React.useState(() => {
+          try {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : initialValue;
+          } catch {
+            return initialValue;
+          }
+        });
+
+        React.useEffect(() => {
+          try {
+            localStorage.setItem(key, JSON.stringify(value));
+          } catch {}
+        }, [key, value]);
+
+        return [value, setValue];
+      }
+
+      // ========================
+      //   Supabase helper
+      // ========================
+      async function sendToSupabase(row) {
+        const url = `${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: CONFIG.SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify(row),
+        });
+        if (!res.ok) {
+          const t = await res.text();
+          console.warn("Supabase POST failed", res.status, t);
+          throw new Error(`HTTP ${res.status} — ${t}`);
+        }
+        return true;
+      }
+
+      // ========================
+      //   UI: Header
+      // ========================
+      function Header({ agentName, onLogout, logoUrl, appName }) {
+        return (
+          <header
+            className="sticky top-0 z-40 bg-white border-b shadow-sm"
+            style={{ paddingTop: "env(safe-area-inset-top)" }}
+          >
+            <div className="max-w-4xl mx-auto px-4">
+              <div className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between py-3 gap-2 sm:gap-0">
+                <div className="flex items-center gap-3">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Logo"
+                      className="w-8 h-8 rounded-lg object-contain border bg-white"
+                      onError={(e) => (e.currentTarget.style.display = "none")}
+                    />
+                  ) : null}
+                  <span className="font-semibold text-base sm:text-lg">
+                    {appName || "Les Assions 2026 — Distributions"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-end gap-2 text-sm sm:text-base">
+                  <span className="text-gray-700 font-medium truncate max-w-[45vw] sm:max-w-[30vw]">
+                    👤 {agentName}
+                  </span>
+                  <button
+                    onClick={onLogout}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm sm:text-base"
+                    title="Se déconnecter"
+                    aria-label="Se déconnecter"
+                  >
+                    🚪 <span className="hidden sm:inline">Se déconnecter</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </header>
+        );
+      }
+
+      // ========================
+      //   UI: Écran de connexion
+      // ========================
+      function AgentSetup({ onSave }) {
+        const [query, setQuery] = React.useState("");
+        const [password, setPassword] = React.useState("");
+        const [error, setError] = React.useState("");
+
+        const resolveAgent = (q) => {
+          const s = q.trim().toLowerCase();
+          return (
+            AGENTS_LIST.find((a) => a.id.toLowerCase() === s) ||
+            AGENTS_LIST.find((a) => a.name.toLowerCase() === s)
+          );
+        };
+
+        const save = () => {
+          const agent = resolveAgent(query);
+          if (!agent) {
+            return setError("Sélectionnez un nom valide dans la liste.");
+          }
+
+          const expectedPassword = AGENT_PASSWORDS[agent.id];
+          if (!expectedPassword) {
+            return setError("Aucun mot de passe configuré pour cet agent.");
+          }
+
+          if (password !== expectedPassword) {
+            return setError("Mot de passe incorrect.");
+          }
+
+          onSave({ id: agent.id, name: agent.name, team: agent.team });
+        };
+
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow p-6 text-center">
+              <img
+                src={CONFIG.LOGO_URL}
+                alt="Logo"
+                className="w-24 h-24 mx-auto mb-4 object-contain"
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
+              <h1 className="text-xl font-semibold mb-1">Les Assions 2026</h1>
+              <p className="text-sm text-gray-600 mb-4">
+                Connectez-vous pour enregistrer vos distributions.
+              </p>
+
+              {/* Nom / identifiant */}
+              <label className="block mb-4 text-left">
+                <span className="text-sm text-gray-600">Votre nom (ou identifiant)</span>
+                <input
+                  list="agents"
+                  className="mt-1 w-full border rounded-xl px-3 py-2 text-sm"
+                  placeholder="Ex : Jean Dupont ou JDUP"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setError("");
+                  }}
+                  autoCapitalize="words"
+                  autoComplete="off"
+                />
+                <datalist id="agents">
+                  {AGENTS_LIST.map((a) => (
+                    <option key={a.id} value={a.name} />
+                  ))}
+                </datalist>
+                <div className="mt-1 text-xs text-gray-500">
+                  Astuce : vous pouvez aussi saisir votre identifiant (ex.{" "}
+                  <code>JDUP</code>).
+                </div>
+              </label>
+
+              {/* Mot de passe */}
+              <label className="block mb-4 text-left">
+                <span className="text-sm text-gray-600">Mot de passe</span>
+                <input
+                  type="password"
+                  className="mt-1 w-full border rounded-xl px-3 py-2 text-sm"
+                  placeholder="Mot de passe"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError("");
+                  }}
+                  autoComplete="off"
+                />
+              </label>
+
+              {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+
+              <button
+                onClick={save}
+                className="w-full bg-black text-white rounded-xl py-2.5 font-medium hover:opacity-90"
+              >
+                C'est parti
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // ========================
+      //   UI: Écran de distribution
+      // ========================
+      function DistributionScreen({ agent }) {
+        const [street, setStreet] = React.useState("");
+        const [comment, setComment] = React.useState("");
+        const [citizenPhone, setCitizenPhone] = React.useState("");
+        const [citizenEmail, setCitizenEmail] = React.useState("");
+        const [status, setStatus] = React.useState("");
+        const [error, setError] = React.useState("");
+        const [saving, setSaving] = React.useState(false);
+        const [locating, setLocating] = React.useState(false);
+        const [success, setSuccess] = React.useState(false);
+        const [coords, setCoords] = React.useState(null); // {lat, lng} ou null
+
+        const mapRef = React.useRef(null);
+        const markerRef = React.useRef(null);
+        const mapContainerRef = React.useRef(null);
+
+        React.useEffect(() => {
+          setStatus(
+            "Commune : Les Assions — CP : 07140 — Pays : France (fixes, seule l'adresse change)."
+          );
+        }, []);
+
+        function showOnMap(lat, lng) {
+          if (!window.google || !window.google.maps) {
+            console.warn("Google Maps non chargé ou clé API manquante.");
+            return;
+          }
+          const position = { lat, lng };
+          if (!mapRef.current) {
+            mapRef.current = new google.maps.Map(mapContainerRef.current, {
+              center: position,
+              zoom: 18,
+              mapTypeId: "roadmap",
+            });
+            markerRef.current = new google.maps.Marker({
+              position,
+              map: mapRef.current,
+              title: "Position de distribution",
+            });
+          } else {
+            mapRef.current.setCenter(position);
+            mapRef.current.setZoom(18);
+            if (markerRef.current) {
+              markerRef.current.setPosition(position);
+            } else {
+              markerRef.current = new google.maps.Marker({
+                position,
+                map: mapRef.current,
+                title: "Position de distribution",
+              });
+            }
+          }
+        }
+
+        async function reverseGeocode(lat, lon) {
+          const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(
+            lat
+          )}&lon=${encodeURIComponent(lon)}&addressdetails=1`;
+
+          const response = await fetch(url, {
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error("Erreur HTTP " + response.status);
+          }
+
+          return response.json();
+        }
+
+        function fillAddressFromNominatim(data) {
+          const address = data.address || {};
+          const houseNumber = address.house_number || "";
+          const road =
+            address.road ||
+            address.pedestrian ||
+            address.footway ||
+            address.cycleway ||
+            "";
+          const finalStreet = [houseNumber, road].filter(Boolean).join(" ");
+          if (finalStreet) {
+            setStreet(finalStreet);
+          }
+        }
+
+        function handleLocate() {
+          if (!navigator.geolocation) {
+            setStatus(
+              "La géolocalisation n'est pas supportée par ce navigateur. Saisissez l'adresse manuellement."
+            );
+            return;
+          }
+
+          setLocating(true);
+          setStatus("Récupération de la position GPS…");
+          setError("");
+          setCoords(null);
+
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              const { latitude, longitude } = position.coords;
+              setCoords({ lat: latitude, lng: longitude });
+              setStatus("Position trouvée. Recherche de l'adresse la plus proche…");
+
+              showOnMap(latitude, longitude);
+
+              try {
+                const data = await reverseGeocode(latitude, longitude);
+                fillAddressFromNominatim(data);
+                setStatus(
+                  "Adresse estimée à partir de votre position. Vous pouvez la corriger si nécessaire."
+                );
+              } catch (err) {
+                console.error(err);
+                setStatus(
+                  "Impossible de récupérer l'adresse à partir de la position. Remplissez l'adresse manuellement."
+                );
+              } finally {
+                setLocating(false);
+              }
+            },
+            (error) => {
+              console.error(error);
+              switch (error.code) {
+                case error.PERMISSION_DENIED:
+                  setStatus(
+                    "Accès à la localisation refusé. Vous pouvez remplir l'adresse manuellement."
+                  );
+                  break;
+                case error.POSITION_UNAVAILABLE:
+                  setStatus(
+                    "Position introuvable. Vérifiez le GPS ou le réseau, puis réessayez."
+                  );
+                  break;
+                case error.TIMEOUT:
+                  setStatus(
+                    "Le temps de récupération de la localisation a expiré. Réessayez."
+                  );
+                  break;
+                default:
+                  setStatus(
+                    "Erreur inconnue lors de la récupération de la localisation."
+                  );
+              }
+              setLocating(false);
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            }
+          );
+        }
+
+        async function handleSubmit(e) {
+          e.preventDefault();
+          setError("");
+          setSuccess(false);
+
+          if (!street.trim()) {
+            setError("Merci de renseigner au moins l'adresse (numéro + rue).");
+            return;
+          }
+
+          const payload = {
+            timestamp_iso: new Date().toISOString(),
+            agent_id: agent?.id || null,
+            agent_name: agent?.name || null,
+            agent_team: agent?.team || null,
+            street: street.trim(),
+            commune: "Les Assions",
+            postcode: "07140",
+            country: "France",
+            latitude: coords?.lat ?? null,
+            longitude: coords?.lng ?? null,
+            commentaire: comment.trim() || null,
+            citizen_phone: citizenPhone.trim() || null,
+            citizen_email: citizenEmail.trim() || null,
+          };
+
+          setSaving(true);
+          try {
+            await sendToSupabase(payload);
+            setSuccess(true);
+          } catch (err) {
+            console.warn("Envoi Supabase échoué, on stocke en local :", err);
+            outboxPush(payload);
+            setSuccess(true);
+          } finally {
+            setSaving(false);
+            // on garde les champs remplis pour ne pas perdre l'info
+            setTimeout(() => setSuccess(false), 1500);
+          }
+        }
+
+        return (
+          <div className="mt-4">
+            <div className="max-w-3xl mx-auto">
+              <div className="bg-white rounded-2xl shadow p-4 mb-4 border">
+                <h1 className="text-lg font-semibold mb-1">
+                  Nouvelle distribution de tract
+                </h1>
+                <p className="text-sm text-gray-600">
+                  Commune <span className="font-medium">Les Assions</span> —{" "}
+                  <span className="font-mono">07140</span> — France.
+                  <br />
+                  Utilisez la localisation pour pré-remplir l'adresse, puis complétez les
+                  infos du citoyen rencontré.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow p-4 border">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={handleLocate}
+                    disabled={locating}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-medium shadow hover:bg-blue-700 disabled:bg-gray-400"
+                  >
+                    📍{" "}
+                    {locating
+                      ? "Récupération de la position…"
+                      : "Utiliser ma position actuelle"}
+                  </button>
+                  <div className="text-xs text-gray-500">
+                    Le GPS sert uniquement à estimer l'adresse et la placer sur la carte.
+                  </div>
+                </div>
+
+                <div className="text-sm mb-2 text-gray-700 min-h-[1.5rem]">
+                  {status}
+                </div>
+
+                {coords && (
+                  <div className="text-xs text-gray-500 mb-2">
+                    Coordonnées GPS :{" "}
+                    <span className="font-mono">
+                      {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                    </span>
+                  </div>
+                )}
+
+                <div
+                  ref={mapContainerRef}
+                  className="w-full h-64 rounded-xl overflow-hidden border bg-gray-100 mb-4"
+                ></div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">
+                      Adresse (numéro + rue) *
+                    </label>
+                    <input
+                      className="w-full border rounded-xl px-3 py-2 text-sm"
+                      placeholder="Ex : 12 Rue du Village"
+                      value={street}
+                      onChange={(e) => setStreet(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">
+                        Commune
+                      </label>
+                      <input
+                        className="w-full border rounded-xl px-3 py-2 text-sm bg-gray-50"
+                        value="Les Assions"
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">
+                        Code postal
+                      </label>
+                      <input
+                        className="w-full border rounded-xl px-3 py-2 text-sm bg-gray-50"
+                        value="07140"
+                        readOnly
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">
+                        Pays
+                      </label>
+                      <input
+                        className="w-full border rounded-xl px-3 py-2 text-sm bg-gray-50"
+                        value="France"
+                        readOnly
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">
+                      Commentaire / notes de visite
+                    </label>
+                    <textarea
+                      className="w-full border rounded-xl px-3 py-2 text-sm"
+                      rows="3"
+                      placeholder="Ex : Citoyen très intéressé, parle de la voirie, à recontacter après le 1er tour…"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">
+                        Téléphone du citoyen (optionnel)
+                      </label>
+                      <input
+                        className="w-full border rounded-xl px-3 py-2 text-sm"
+                        placeholder="06..."
+                        value={citizenPhone}
+                        onChange={(e) => setCitizenPhone(e.target.value)}
+                        inputMode="tel"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">
+                        Email du citoyen (optionnel)
+                      </label>
+                      <input
+                        className="w-full border rounded-xl px-3 py-2 text-sm"
+                        placeholder="citoyen@example.com"
+                        value={citizenEmail}
+                        onChange={(e) => setCitizenEmail(e.target.value)}
+                        type="email"
+                        autoCapitalize="off"
+                      />
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="text-sm text-red-600">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="px-4 py-2 rounded-xl bg-black text-white text-sm font-medium hover:bg-gray-900 disabled:bg-gray-500"
+                    >
+                      {saving ? "Enregistrement..." : "Enregistrer la distribution"}
+                    </button>
+                  </div>
+                </form>
+
+                {success && (
+                  <div className="mt-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                    Distribution enregistrée (ou stockée en local si hors ligne) ✅
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ========================
+      //   App
+      // ========================
+      function App() {
+        const [agent, setAgent] = useLocalStorage(CONFIG.AGENT_KEY, null);
+
+        // Outbox auto
+        React.useEffect(() => {
+          outboxFlush();
+          const id = setInterval(outboxFlush, 30000);
+          return () => clearInterval(id);
+        }, []);
+
+        // Titre + theme-color
+        React.useEffect(() => {
+          document.title = CONFIG.APP_NAME;
+          const metaTheme = document.querySelector('meta[name="theme-color"]');
+          if (metaTheme) metaTheme.setAttribute("content", CONFIG.THEME_COLOR);
+        }, []);
+
+        if (!agent) {
+          return <AgentSetup onSave={setAgent} />;
+        }
+
+        return (
+          <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+            <Header
+              agentName={agent?.name}
+              onLogout={() => setAgent(null)}
+              logoUrl={CONFIG.LOGO_URL}
+              appName={CONFIG.APP_NAME}
+            />
+            <main className="max-w-4xl mx-auto px-4 pb-8">
+              <DistributionScreen agent={agent} />
+            </main>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>
