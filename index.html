@@ -826,9 +826,11 @@
           const coords = [];
 
           (data || []).forEach((r) => {
-            const lat = Number(r.latitude);
-            const lng = Number(r.longitude);
-            if (!isFinite(lat) || !isFinite(lng)) return;
+              const lat = parseFloat(r.latitude);
+              const lng = parseFloat(r.longitude);
+              console.log("Marker:", lat, lng, r.street);
+              if (isNaN(lat) || isNaN(lng)) return;
+
 
             coords.push([lat, lng]);
 
@@ -1041,3 +1043,4 @@
     </script>
   </body>
 </html>
+
