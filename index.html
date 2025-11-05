@@ -15,7 +15,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Les Assions 2026" />
 
-    <!-- Manifest & icônes (à adapter si besoin) -->
+    <!-- Manifest & icônes -->
     <link rel="manifest" href="./public/manifest.json" />
     <link rel="icon" href="./public/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="./public/icons/icon-192.png" />
@@ -26,28 +26,27 @@
       href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
     />
     <style>
-      /* confort iOS: évite le zoom automatique */
       input,
       select,
       textarea,
       button {
         font-size: 16px;
       }
-       /* ---- Thème vert campagne ---- */
-  .btn-primary {
-    background-color: #79AEA3;
-    color: white;
-    font-weight: 500;
-    border-radius: 0.75rem; /* = rounded-xl */
-    transition: all 0.2s ease-in-out;
-  }
-  .btn-primary:hover {
-    background-color: #699b91;
-  }
-  .btn-primary:disabled {
-    background-color: #a8c9c2;
-    cursor: not-allowed;
-  }
+      /* ---- Thème vert campagne ---- */
+      .btn-primary {
+        background-color: #79aea3;
+        color: white;
+        font-weight: 500;
+        border-radius: 0.75rem; /* rounded-xl */
+        transition: all 0.2s ease-in-out;
+      }
+      .btn-primary:hover {
+        background-color: #699b91;
+      }
+      .btn-primary:disabled {
+        background-color: #a8c9c2;
+        cursor: not-allowed;
+      }
     </style>
 
     <!-- React + Babel -->
@@ -61,29 +60,36 @@
     ></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-<!-- Leaflet (carte OpenStreetMap, gratuit) -->
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-  crossorigin=""
-/>
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
-></script>
-    <!-- Marker cluster (utile si beaucoup de points) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster-src.js"></script>
+    <!-- Leaflet (carte OpenStreetMap) -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+
+    <!-- (Optionnel) markercluster, pas encore utilisé mais ok -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+    />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster-src.js"></script>
 
     <!-- Service Worker simple -->
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("./sw.js") // ← au lieu de "/sw.js"
+            .register("./sw.js")
             .then((reg) => console.log("SW registered:", reg.scope))
             .catch(console.error);
         });
@@ -131,9 +137,9 @@
         SUPABASE_URL: "https://cgevhnbayhtnuxycypca.supabase.co",
         SUPABASE_ANON_KEY:
           "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnZXZobmJheWh0bnV4eWN5cGNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNTY0ODQsImV4cCI6MjA3NzgzMjQ4NH0.TLzl_7ybzsT6i29BXzA1mRjsgFIPIHWr0Vzu-FrVEdQ",
-        TABLE: "distributions_2026", // 🔁 à créer / adapter dans Supabase
+        TABLE: "distributions_2026",
         AGENT_KEY: "la_agent_name_v1",
-        LOGO_URL: "./public/assets/logo-assions-2026.png", // ou logo de campagne
+        LOGO_URL: "./public/assets/logo-assions-2026.png",
         APP_NAME: "Les Assions 2026 — Distributions",
         THEME_COLOR: "#111827",
       };
@@ -147,10 +153,8 @@
         { id: "BGIR", name: "Baptiste GIRARD", team: "Les Assions" },
         { id: "RMOR", name: "Régis MOREL", team: "Les Assions" },
         { id: "ISAV", name: "Igor SAVITCH", team: "Les Assions" },
-        // 👉 ajoute ici les vrais noms / équipes
       ];
 
-      // 🔐 mots de passe associés aux agents (à adapter évidemment)
       const AGENT_PASSWORDS = {
         BGIR: "1234",
         ISAV: "1234",
@@ -160,7 +164,7 @@
       };
 
       // ========================
-      //   Hooks
+      //   Hook localStorage
       // ========================
       function useLocalStorage(key, initialValue) {
         const [value, setValue] = React.useState(() => {
@@ -205,7 +209,7 @@
       }
 
       // ========================
-      //   UI: Header
+      //   Header
       // ========================
       function Header({ agentName, onLogout, logoUrl, appName, onOpenViewer }) {
         return (
@@ -255,7 +259,7 @@
       }
 
       // ========================
-      //   UI: Écran de connexion
+      //   Connexion
       // ========================
       function AgentSetup({ onSave }) {
         const [query, setQuery] = React.useState("");
@@ -291,27 +295,24 @@
         return (
           <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <div className="w-full max-w-md bg-white rounded-2xl shadow p-6 text-center">
-                <img
-                  src={CONFIG.LOGO_URL}
-                  alt="Logo de la campagne"
-                  className="w-64 max-w-full mx-auto mb-6 object-contain drop-shadow-lg"
-                  style={{
-                    maxHeight: "180px",
-                  }}
-                  onError={(e) => (e.currentTarget.style.display = "none")}
-                />
+              <img
+                src={CONFIG.LOGO_URL}
+                alt="Logo de la campagne"
+                className="w-64 max-w-full mx-auto mb-6 object-contain drop-shadow-lg"
+                style={{ maxHeight: "180px" }}
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
               <h1 className="text-xl font-semibold mb-1">Les Assions 2026</h1>
               <p className="text-sm text-gray-600 mb-4">
                 Connectez-vous pour enregistrer vos distributions.
               </p>
 
-              {/* Nom / identifiant */}
               <label className="block mb-4 text-left">
                 <span className="text-sm text-gray-600">Votre nom (ou identifiant)</span>
                 <input
                   list="agents"
                   className="mt-1 w-full border rounded-xl px-3 py-2 text-sm"
-                  placeholder="Ex : Jean Dupont ou JDUP"
+                  placeholder="Ex : Tony Chauvet ou TCHA"
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -327,11 +328,10 @@
                 </datalist>
                 <div className="mt-1 text-xs text-gray-500">
                   Astuce : vous pouvez aussi saisir votre identifiant (ex.{" "}
-                  <code>JDUP</code>).
+                  <code>TCHA</code>).
                 </div>
               </label>
 
-              {/* Mot de passe */}
               <label className="block mb-4 text-left">
                 <span className="text-sm text-gray-600">Mot de passe</span>
                 <input
@@ -349,10 +349,7 @@
 
               {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
-              <button
-                onClick={save}
-                className="w-full btn-primary py-2.5"
-              >
+              <button onClick={save} className="w-full btn-primary py-2.5">
                 C'est parti
               </button>
             </div>
@@ -361,7 +358,7 @@
       }
 
       // ========================
-      //   UI: Écran de distribution
+      //   DistributionScreen
       // ========================
       function DistributionScreen({ agent }) {
         const [street, setStreet] = React.useState("");
@@ -373,7 +370,7 @@
         const [saving, setSaving] = React.useState(false);
         const [locating, setLocating] = React.useState(false);
         const [success, setSuccess] = React.useState(false);
-        const [coords, setCoords] = React.useState(null); // {lat, lng} ou null
+        const [coords, setCoords] = React.useState(null);
 
         const mapRef = React.useRef(null);
         const markerRef = React.useRef(null);
@@ -385,45 +382,37 @@
           );
         }, []);
 
-            function showOnMap(lat, lng) {
-              // Vérifie que Leaflet est bien chargé
-              if (!window.L) {
-                console.warn("Leaflet non chargé (L indisponible).");
-                return;
-              }
-            
-              const position = [lat, lng]; // Leaflet attend [lat, lng]
-            
-              // Première création de la carte
-              if (!mapRef.current) {
-                // Création de la carte centrée sur la position
-                mapRef.current = L.map(mapContainerRef.current).setView(position, 18);
-            
-                // Fonds de carte OpenStreetMap gratuits
-                L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                  maxZoom: 19,
-                  attribution: "© OpenStreetMap contributors",
-                }).addTo(mapRef.current);
-            
-                // Ajout du marqueur
-                markerRef.current = L.marker(position).addTo(mapRef.current);
-            
-                // Fix pour les soucis de rendu si le conteneur change de taille
-                setTimeout(() => {
-                  mapRef.current && mapRef.current.invalidateSize();
-                }, 100);
-              } else {
-                // Si la carte existe déjà, on la recadre simplement
-                mapRef.current.setView(position, 18);
-            
-                if (markerRef.current) {
-                  markerRef.current.setLatLng(position);
-                } else {
-                  markerRef.current = L.marker(position).addTo(mapRef.current);
-                }
-              }
-            }
+        function showOnMap(lat, lng) {
+          if (!window.L) {
+            console.warn("Leaflet non chargé (L indisponible).");
+            return;
+          }
 
+          const position = [lat, lng];
+
+          if (!mapRef.current) {
+            mapRef.current = L.map(mapContainerRef.current).setView(position, 18);
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              maxZoom: 19,
+              attribution: "© OpenStreetMap contributors",
+            }).addTo(mapRef.current);
+
+            markerRef.current = L.marker(position).addTo(mapRef.current);
+
+            setTimeout(() => {
+              mapRef.current && mapRef.current.invalidateSize();
+            }, 100);
+          } else {
+            mapRef.current.setView(position, 18);
+
+            if (markerRef.current) {
+              markerRef.current.setLatLng(position);
+            } else {
+              markerRef.current = L.marker(position).addTo(mapRef.current);
+            }
+          }
+        }
 
         async function reverseGeocode(lat, lon) {
           const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(
@@ -431,9 +420,7 @@
           )}&lon=${encodeURIComponent(lon)}&addressdetails=1`;
 
           const response = await fetch(url, {
-            headers: {
-              Accept: "application/json",
-            },
+            headers: { Accept: "application/json" },
           });
 
           if (!response.ok) {
@@ -453,9 +440,7 @@
             address.cycleway ||
             "";
           const finalStreet = [houseNumber, road].filter(Boolean).join(" ");
-          if (finalStreet) {
-            setStreet(finalStreet);
-          }
+          if (finalStreet) setStreet(finalStreet);
         }
 
         function handleLocate() {
@@ -563,13 +548,14 @@
             setSuccess(true);
           } finally {
             setSaving(false);
-            // on vide les champs pour une nouvelle saisie
             setStreet("");
             setComment("");
             setCitizenPhone("");
             setCitizenEmail("");
             setCoords(null);
-            setStatus("Commune : Les Assions — CP : 07140 — Pays : France (fixes, seule l'adresse change).");
+            setStatus(
+              "Commune : Les Assions — CP : 07140 — Pays : France (fixes, seule l'adresse change)."
+            );
             setTimeout(() => setSuccess(false), 1500);
           }
         }
@@ -740,20 +726,21 @@
           </div>
         );
       }
+
       // ========================
-      //   Viewer on Map
+      //   Viewer (carte des points)
       // ========================
       function Viewer({ onClose }) {
         const [rows, setRows] = React.useState([]);
         const [loading, setLoading] = React.useState(false);
         const [error, setError] = React.useState("");
         const [agentFilter, setAgentFilter] = React.useState("");
-        const [limit, setLimit] = React.useState(200); // nombre max de points
-      
+        const [limit, setLimit] = React.useState(200);
+
         const mapRef = React.useRef(null);
         const markersLayerRef = React.useRef(null);
         const mapContainerRef = React.useRef(null);
-      
+
         React.useEffect(() => {
           fetchRows();
           return () => {
@@ -766,16 +753,16 @@
             } catch {}
           };
         }, []);
-      
+
         function escapeHtml(s) {
           if (!s) return "";
           return String(s)
             .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
+            .replace(/<//g, "&lt;")
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;");
         }
-      
+
         async function fetchRows() {
           setLoading(true);
           setError("");
@@ -783,23 +770,23 @@
             let url = `${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}?select=*&order=created_at.desc&limit=${encodeURIComponent(
               limit
             )}`;
-      
+
             if (agentFilter) {
               url += `&agent_id=eq.${encodeURIComponent(agentFilter)}`;
             }
-      
+
             const res = await fetch(url, {
               headers: {
                 apikey: CONFIG.SUPABASE_ANON_KEY,
                 Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
               },
             });
-      
+
             if (!res.ok) {
               const txt = await res.text();
               throw new Error(`HTTP ${res.status} — ${txt}`);
             }
-      
+
             const data = await res.json();
             setRows(data || []);
             setTimeout(() => showRowsOnMap(data || []), 50);
@@ -810,42 +797,41 @@
             setLoading(false);
           }
         }
-      
+
         function showRowsOnMap(data) {
           if (!window.L) {
             console.warn("Leaflet non chargé");
             return;
           }
-      
+
           if (!mapRef.current) {
             mapRef.current = L.map(mapContainerRef.current).setView(
-              [44.5, 4.25], // Ardèche
+              [44.5, 4.25],
               12
             );
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
               maxZoom: 19,
               attribution: "© OpenStreetMap contributors",
             }).addTo(mapRef.current);
-      
+
             markersLayerRef.current = L.layerGroup().addTo(mapRef.current);
-      
+
             setTimeout(() => {
               mapRef.current && mapRef.current.invalidateSize();
             }, 200);
           } else if (markersLayerRef.current) {
             markersLayerRef.current.clearLayers();
           }
-      
+
           const coords = [];
-      
+
           (data || []).forEach((r) => {
             const lat = Number(r.latitude);
             const lng = Number(r.longitude);
             if (!isFinite(lat) || !isFinite(lng)) return;
-      
+
             coords.push([lat, lng]);
-      
-            // Construire la popup par concaténation simple (pas de backticks imbriqués)
+
             let popupHtml = '<div style="min-width:180px">';
             popupHtml +=
               "<strong>" +
@@ -857,46 +843,46 @@
               " " +
               escapeHtml(r.postcode || "") +
               "</small><br/>";
-      
+
             if (r.commentaire) {
               popupHtml +=
                 '<div style="margin-top:6px"><em>' +
                 escapeHtml(r.commentaire) +
                 "</em></div>";
             }
-      
+
             popupHtml += '<div style="margin-top:6px;font-size:12px;color:#555">';
             popupHtml +=
               "Agent : " +
               escapeHtml(r.agent_name || r.agent_id || "") +
               "<br/>";
-      
+
             if (r.citizen_phone) {
               popupHtml += "📞 " + escapeHtml(r.citizen_phone) + "<br/>";
             }
             if (r.citizen_email) {
               popupHtml += "✉ " + escapeHtml(r.citizen_email) + "<br/>";
             }
-      
+
             if (r.created_at) {
               popupHtml +=
                 '<div style="opacity:0.8;margin-top:4px">' +
                 new Date(r.created_at).toLocaleString() +
                 "</div>";
             }
-      
+
             popupHtml += "</div></div>";
-      
+
             const marker = L.marker([lat, lng]).bindPopup(popupHtml);
             markersLayerRef.current.addLayer(marker);
           });
-      
+
           if (coords.length && mapRef.current) {
             const bounds = L.latLngBounds(coords);
             mapRef.current.fitBounds(bounds.pad(0.2));
           }
         }
-      
+
         return (
           <div className="mt-4">
             <div className="max-w-6xl mx-auto">
@@ -945,7 +931,7 @@
                   </button>
                 </div>
               </div>
-      
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2">
                   <div
@@ -964,9 +950,7 @@
                       </div>
                     )}
                     {error && (
-                      <div className="text-sm text-red-600">
-                        {error}
-                      </div>
+                      <div className="text-sm text-red-600">{error}</div>
                     )}
                     {rows.map((r) => (
                       <div
@@ -1009,228 +993,29 @@
         );
       }
 
-
-
-  function showRowsOnMap(data) {
-    if (!window.L) {
-      console.warn("Leaflet non chargé");
-      return;
-    }
-
-    // init carte si besoin
-    if (!mapRef.current) {
-      mapRef.current = L.map(mapContainerRef.current).setView(
-        [44.5, 4.25], // centre par défaut (Ardèche)
-        12
-      );
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "© OpenStreetMap contributors",
-      }).addTo(mapRef.current);
-
-      markersLayerRef.current = L.layerGroup().addTo(mapRef.current);
-
-      setTimeout(() => {
-        mapRef.current && mapRef.current.invalidateSize();
-      }, 200);
-    } else {
-      // clear anciens points
-      if (markersLayerRef.current) {
-        markersLayerRef.current.clearLayers();
-      }
-    }
-
-    const coords = [];
-
-    (data || []).forEach((r) => {
-      const lat = Number(r.latitude);
-      const lng = Number(r.longitude);
-      if (!isFinite(lat) || !isFinite(lng)) return;
-
-      coords.push([lat, lng]);
-
-      const popupHtml = `
-        <div style="min-width:180px">
-          <strong>${escapeHtml(r.street || "Adresse inconnue")}</strong><br/>
-          <small>${escapeHtml(r.commune || "")} ${escapeHtml(r.postcode || "")}</small><br/>
-          ${
-            r.commentaire
-              ? `<div style="margin-top:6px"><em>${escapeHtml(
-                  r.commentaire
-                )}</em></div>`
-              : ""
-          }
-          <div style="margin-top:6px;font-size:12px;color:#555">
-            Agent : ${escapeHtml(r.agent_name || r.agent_id || "")}<br/>
-            ${
-              r.citizen_phone
-                ? `📞 ${escapeHtml(r.citizen_phone)}<br/>`
-                : ""
-            }
-            ${
-              r.citizen_email
-                ? `✉ ${escapeHtml(r.citizen_email)}<br/>`
-                : ""
-            }
-            <div style="opacity:0.8;margin-top:4px">
-              ${
-                r.created_at
-                  ? new Date(r.created_at).toLocaleString()
-                  : ""
-              }
-            </div>
-          </div>
-        </div>
-      `;
-
-      const marker = L.marker([lat, lng]).bindPopup(popupHtml);
-      markersLayerRef.current.addLayer(marker);
-    });
-
-    if (coords.length && mapRef.current) {
-      const bounds = L.latLngBounds(coords);
-      mapRef.current.fitBounds(bounds.pad(0.2));
-    }
-  }
-
-  return (
-    <div className="mt-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-          <div>
-            <h2 className="text-lg font-semibold">Viewer des distributions</h2>
-            <p className="text-sm text-gray-600">
-              Visualisation des points GPS enregistrés dans Supabase.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="border rounded-xl px-3 py-2 text-sm"
-              value={agentFilter}
-              onChange={(e) => setAgentFilter(e.target.value)}
-            >
-              <option value="">Tous les agents</option>
-              {AGENTS_LIST.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="border rounded-xl px-3 py-2 text-sm w-24"
-              type="number"
-              min="10"
-              max="1000"
-              value={limit}
-              onChange={(e) =>
-                setLimit(Number(e.target.value) || 100)
-              }
-              title="Nombre max de points"
-            />
-            <button
-              onClick={fetchRows}
-              className="btn-primary px-3 py-2 text-sm"
-            >
-              Rafraîchir
-            </button>
-            <button
-              onClick={onClose}
-              className="px-3 py-2 text-sm rounded-xl border bg-white hover:bg-gray-50"
-            >
-              Fermer
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <div
-              ref={mapContainerRef}
-              className="w-full h-[60vh] rounded-xl border bg-gray-100"
-            ></div>
-          </div>
-          <div>
-            <div className="bg-white rounded-xl border shadow-sm p-3 max-h-[60vh] overflow-auto">
-              <div className="text-xs text-gray-500 mb-2">
-                Total affiché : {rows.length}
-              </div>
-              {loading && (
-                <div className="text-sm text-gray-600">
-                  Chargement…
-                </div>
-              )}
-              {error && (
-                <div className="text-sm text-red-600">
-                  {error}
-                </div>
-              )}
-              {rows.map((r) => (
-                <div
-                  key={r.id || `${r.agent_id}-${r.created_at}`}
-                  className="pb-2 mb-2 border-b last:border-0 last:mb-0 last:pb-0"
-                >
-                  <div className="text-sm font-semibold">
-                    {r.street || "—"}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {r.commune} {r.postcode}
-                  </div>
-                  <div className="text-xs mt-1 text-gray-700">
-                    {r.commentaire ? (
-                      r.commentaire.slice(0, 120)
-                    ) : (
-                      <em>Sans remarque</em>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
-                    <span>{r.agent_name || r.agent_id}</span>
-                    <span>
-                      {r.created_at
-                        ? new Date(
-                            r.created_at
-                          ).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-gray-500">
-              Astuce : filtre par agent + limite pour alléger l’affichage.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-      
       // ========================
       //   App
       // ========================
       function App() {
         const [agent, setAgent] = useLocalStorage(CONFIG.AGENT_KEY, null);
         const [viewerOpen, setViewerOpen] = React.useState(false);
-      
-        // Outbox auto
+
         React.useEffect(() => {
           outboxFlush();
           const id = setInterval(outboxFlush, 30000);
           return () => clearInterval(id);
         }, []);
-      
-        // Titre + theme-color
+
         React.useEffect(() => {
           document.title = CONFIG.APP_NAME;
           const metaTheme = document.querySelector('meta[name="theme-color"]');
           if (metaTheme) metaTheme.setAttribute("content", CONFIG.THEME_COLOR);
         }, []);
-      
+
         if (!agent) {
           return <AgentSetup onSave={setAgent} />;
         }
-      
+
         return (
           <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
             <Header
@@ -1251,20 +1036,8 @@
         );
       }
 
-
       const root = ReactDOM.createRoot(document.getElementById("root"));
       root.render(<App />);
     </script>
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
