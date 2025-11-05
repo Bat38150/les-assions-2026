@@ -73,6 +73,10 @@
   integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
   crossorigin=""
 ></script>
+    <!-- Marker cluster (utile si beaucoup de points) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster-src.js"></script>
 
     <!-- Service Worker simple -->
     <script>
@@ -203,7 +207,7 @@
       // ========================
       //   UI: Header
       // ========================
-      function Header({ agentName, onLogout, logoUrl, appName }) {
+      function Header({ agentName, onLogout, logoUrl, appName, onOpenViewer }) {
         return (
           <header
             className="sticky top-0 z-40 bg-white border-b shadow-sm"
@@ -225,7 +229,14 @@
                   </span>
                 </div>
                 <div className="flex items-center justify-end gap-2 text-sm sm:text-base">
-                  <span className="text-gray-700 font-medium truncate max-w-[45vw] sm:max-w-[30vw]">
+                  <button
+                    onClick={onOpenViewer}
+                    className="px-3 py-1.5 rounded-xl border bg-white hover:bg-gray-50 text-sm"
+                    title="Voir les points enregistrés"
+                  >
+                    📍 Viewer
+                  </button>
+                  <span className="text-gray-700 font-medium truncate max-w-[35vw] sm:max-w-[25vw]">
                     👤 {agentName}
                   </span>
                   <button
@@ -729,31 +740,295 @@
           </div>
         );
       }
+      // ========================
+      //   Viwer on Map
+      // ========================
+      function Viewer({ onClose }) {
+  const [rows, setRows] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [agentFilter, setAgentFilter] = React.useState("");
+  const [limit, setLimit] = React.useState(200); // nombre max de points chargés
 
+  const mapRef = React.useRef(null);
+  const markersLayerRef = React.useRef(null);
+  const mapContainerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    fetchRows();
+    return () => {
+      try {
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
+          markersLayerRef.current = null;
+        }
+      } catch {}
+    };
+  }, []);
+
+  function escapeHtml(s) {
+    if (!s) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  async function fetchRows() {
+    setLoading(true);
+    setError("");
+    try {
+      let url = `${CONFIG.SUPABASE_URL}/rest/v1/${CONFIG.TABLE}?select=*&order=created_at.desc&limit=${encodeURIComponent(
+        limit
+      )}`;
+
+      if (agentFilter) {
+        url += `&agent_id=eq.${encodeURIComponent(agentFilter)}`;
+      }
+
+      const res = await fetch(url, {
+        headers: {
+          apikey: CONFIG.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+        },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`HTTP ${res.status} — ${txt}`);
+      }
+      const data = await res.json();
+      setRows(data || []);
+      setTimeout(() => showRowsOnMap(data || []), 50);
+    } catch (e) {
+      console.warn("Viewer fetchRows error", e);
+      setError(String(e.message || e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function showRowsOnMap(data) {
+    if (!window.L) {
+      console.warn("Leaflet non chargé");
+      return;
+    }
+
+    // init carte si besoin
+    if (!mapRef.current) {
+      mapRef.current = L.map(mapContainerRef.current).setView(
+        [44.5, 4.25], // centre par défaut (Ardèche)
+        12
+      );
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap contributors",
+      }).addTo(mapRef.current);
+
+      markersLayerRef.current = L.layerGroup().addTo(mapRef.current);
+
+      setTimeout(() => {
+        mapRef.current && mapRef.current.invalidateSize();
+      }, 200);
+    } else {
+      // clear anciens points
+      if (markersLayerRef.current) {
+        markersLayerRef.current.clearLayers();
+      }
+    }
+
+    const coords = [];
+
+    (data || []).forEach((r) => {
+      const lat = Number(r.latitude);
+      const lng = Number(r.longitude);
+      if (!isFinite(lat) || !isFinite(lng)) return;
+
+      coords.push([lat, lng]);
+
+      const popupHtml = `
+        <div style="min-width:180px">
+          <strong>${escapeHtml(r.street || "Adresse inconnue")}</strong><br/>
+          <small>${escapeHtml(r.commune || "")} ${escapeHtml(r.postcode || "")}</small><br/>
+          ${
+            r.commentaire
+              ? `<div style="margin-top:6px"><em>${escapeHtml(
+                  r.commentaire
+                )}</em></div>`
+              : ""
+          }
+          <div style="margin-top:6px;font-size:12px;color:#555">
+            Agent : ${escapeHtml(r.agent_name || r.agent_id || "")}<br/>
+            ${
+              r.citizen_phone
+                ? `📞 ${escapeHtml(r.citizen_phone)}<br/>`
+                : ""
+            }
+            ${
+              r.citizen_email
+                ? `✉ ${escapeHtml(r.citizen_email)}<br/>`
+                : ""
+            }
+            <div style="opacity:0.8;margin-top:4px">
+              ${
+                r.created_at
+                  ? new Date(r.created_at).toLocaleString()
+                  : ""
+              }
+            </div>
+          </div>
+        </div>
+      `;
+
+      const marker = L.marker([lat, lng]).bindPopup(popupHtml);
+      markersLayerRef.current.addLayer(marker);
+    });
+
+    if (coords.length && mapRef.current) {
+      const bounds = L.latLngBounds(coords);
+      mapRef.current.fitBounds(bounds.pad(0.2));
+    }
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+          <div>
+            <h2 className="text-lg font-semibold">Viewer des distributions</h2>
+            <p className="text-sm text-gray-600">
+              Visualisation des points GPS enregistrés dans Supabase.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              className="border rounded-xl px-3 py-2 text-sm"
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
+            >
+              <option value="">Tous les agents</option>
+              {AGENTS_LIST.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+            <input
+              className="border rounded-xl px-3 py-2 text-sm w-24"
+              type="number"
+              min="10"
+              max="1000"
+              value={limit}
+              onChange={(e) =>
+                setLimit(Number(e.target.value) || 100)
+              }
+              title="Nombre max de points"
+            />
+            <button
+              onClick={fetchRows}
+              className="btn-primary px-3 py-2 text-sm"
+            >
+              Rafraîchir
+            </button>
+            <button
+              onClick={onClose}
+              className="px-3 py-2 text-sm rounded-xl border bg-white hover:bg-gray-50"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <div
+              ref={mapContainerRef}
+              className="w-full h-[60vh] rounded-xl border bg-gray-100"
+            ></div>
+          </div>
+          <div>
+            <div className="bg-white rounded-xl border shadow-sm p-3 max-h-[60vh] overflow-auto">
+              <div className="text-xs text-gray-500 mb-2">
+                Total affiché : {rows.length}
+              </div>
+              {loading && (
+                <div className="text-sm text-gray-600">
+                  Chargement…
+                </div>
+              )}
+              {error && (
+                <div className="text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+              {rows.map((r) => (
+                <div
+                  key={r.id || `${r.agent_id}-${r.created_at}`}
+                  className="pb-2 mb-2 border-b last:border-0 last:mb-0 last:pb-0"
+                >
+                  <div className="text-sm font-semibold">
+                    {r.street || "—"}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {r.commune} {r.postcode}
+                  </div>
+                  <div className="text-xs mt-1 text-gray-700">
+                    {r.commentaire ? (
+                      r.commentaire.slice(0, 120)
+                    ) : (
+                      <em>Sans remarque</em>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
+                    <span>{r.agent_name || r.agent_id}</span>
+                    <span>
+                      {r.created_at
+                        ? new Date(
+                            r.created_at
+                          ).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Astuce : filtre par agent + limite pour alléger l’affichage.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+      
       // ========================
       //   App
       // ========================
       function App() {
         const [agent, setAgent] = useLocalStorage(CONFIG.AGENT_KEY, null);
-
+        const [viewerOpen, setViewerOpen] = React.useState(false);
+      
         // Outbox auto
         React.useEffect(() => {
           outboxFlush();
           const id = setInterval(outboxFlush, 30000);
           return () => clearInterval(id);
         }, []);
-
+      
         // Titre + theme-color
         React.useEffect(() => {
           document.title = CONFIG.APP_NAME;
           const metaTheme = document.querySelector('meta[name="theme-color"]');
           if (metaTheme) metaTheme.setAttribute("content", CONFIG.THEME_COLOR);
         }, []);
-
+      
         if (!agent) {
           return <AgentSetup onSave={setAgent} />;
         }
-
+      
         return (
           <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
             <Header
@@ -761,19 +1036,26 @@
               onLogout={() => setAgent(null)}
               logoUrl={CONFIG.LOGO_URL}
               appName={CONFIG.APP_NAME}
+              onOpenViewer={() => setViewerOpen(true)}
             />
-            <main className="max-w-4xl mx-auto px-4 pb-8">
-              <DistributionScreen agent={agent} />
+            <main className="max-w-6xl mx-auto px-4 pb-8">
+              {viewerOpen ? (
+                <Viewer onClose={() => setViewerOpen(false)} />
+              ) : (
+                <DistributionScreen agent={agent} />
+              )}
             </main>
           </div>
         );
       }
+
 
       const root = ReactDOM.createRoot(document.getElementById("root"));
       root.render(<App />);
     </script>
   </body>
 </html>
+
 
 
 
