@@ -552,7 +552,13 @@
             setSuccess(true);
           } finally {
             setSaving(false);
-            // on garde les champs remplis pour ne pas perdre l'info
+            // on vide les champs pour une nouvelle saisie
+            setStreet("");
+            setComment("");
+            setCitizenPhone("");
+            setCitizenEmail("");
+            setCoords(null);
+            setStatus("Commune : Les Assions — CP : 07140 — Pays : France (fixes, seule l'adresse change).");
             setTimeout(() => setSuccess(false), 1500);
           }
         }
@@ -768,6 +774,7 @@
     </script>
   </body>
 </html>
+
 
 
 
